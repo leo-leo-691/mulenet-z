@@ -1,0 +1,14 @@
+data/
+models/
+*.csv
+*.npy
+*.npz
+*.pt
+*.gguf
+*.zip
+!results/metrics.csv
+!results/chains.csv
+kaggle.json
+*.pem
+.ipynb_checkpoints/
+__pycache__/
