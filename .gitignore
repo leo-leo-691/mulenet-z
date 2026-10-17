@@ -12,3 +12,4 @@ kaggle.json
 *.pem
 .ipynb_checkpoints/
 __pycache__/
+.venv-vipul/
