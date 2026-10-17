@@ -1,36 +1,72 @@
-# MuleNet-Z: cross-bank money-mule detection on IBM Z (IBM Z Datathon 2026, SSF2026)
-## Data
+# MuleNet-Z
 
-### Source dataset
+**Cross-bank money-mule detection without any bank sharing its data.** IBM Z Datathon 2026 · Theme: *AI Secured: Innovation Without Exposure*
 
-MuleNet-Z uses the **IBM Transactions for Anti-Money Laundering (AML)** dataset, specifically the `HI-Small_Trans.csv` file distributed through Kaggle: [IBM Transactions for Anti-Money Laundering (AML)](https://www.kaggle.com/datasets/ealtman2019/ibm-transactions-for-anti-money-laundering-aml).
+Team: Arindam Gogoi · Niyati Joshi · Vishwajeet Sonawane · Vipul Gujar
 
-The processed full dataset contains 515,088 accounts and 5,078,345 transactions. An account is labeled as a mule if it appears as the sender or receiver in at least one transaction marked as laundering. This produces 6,357 labeled mule accounts (approximately 1.23% of accounts).
+## The problem
 
-### Consortium construction
+Scam money hops through mule accounts at several banks within minutes. Each bank sees only its own hop, which looks normal, so the chain stays invisible. Banks cannot pool customer transactions (data-protection law, banking secrecy), and federated learning shares model weights, not the cross-bank transfers where the mule pattern lives.
 
-The dataset's 30,470 bank IDs are grouped into five consortium members, `B1`–`B5`, using greedy transaction-volume balancing. Each member represents a bank-level view of the data. This provides five simulated institutions for evaluating collaborative AML detection.
+## Our approach
 
-### Labels and data splits
+1. Each bank pseudonymises account IDs (shared HMAC key) and encrypts its transactions with its own AES-256-GCM key.
+2. A confidential-computing enclave on IBM Z receives the keys only after attestation, joins the slices into one transaction graph, and mines it with **IBM Snap ML's Graph Feature Preprocessor** (fan-in, fan-out, scatter-gather, temporal cycles).
+3. An XGBoost model scores every account on these patterns plus account features.
+4. Each bank receives an encrypted alert file containing **only its own accounts**, with evidence.
 
-Account labels follow the transaction-touch rule: an account is labeled positive if it is the sender or receiver of any transaction marked as laundering. The label is a prediction target and must not be used as an input feature.
+> **Prototype note:** the enclave boundary is *simulated* in software (encryption + a simulated attestation check). The production target is IBM Secure Execution for Linux / Hyper Protect, with keys in Crypto Express HSMs.
 
-Accounts are divided into training, validation, and test splits using stratified 60/20/20 splitting with random seed `42`, preserving the label distribution as closely as possible across splits.
+## Results (full data)
 
-### Institution-specific views and features
+IBM AML dataset HI-Small: 5,078,345 transactions, 515,088 accounts, split into 5 consortium members by real bank ID. Each model is trained twice, once per bank on its own data only and once on the joined graph, then evaluated on the same test accounts. Each bank alerts on its top 1% of test accounts.
 
-Features are computed using only the transactions available in the view being evaluated. For a single-institution view, feature calculations use only that institution's available transactions; for the combined view, they use the combined transaction set. Features must not use transactions from outside the selected view. The mule label is never included as a feature.
+| Model | Recall, each bank alone | Recall, joined | Uplift (95% CI) | Cross-bank chains caught (of 662) |
+|---|---|---|---|---|
+| **Snap ML graph patterns + XGBoost** | 19.0% | **25.0%** | **+6.0 pts (+3.9 to +8.0)** | 160 → 193 |
+| XGBoost, account features only | 17.3% | 22.5% | +5.2 pts (+3.2 to +7.2) | 154 → 187 |
+| Logistic regression | 10.8% | 10.8% | −0.1 pts (−0.9 to +0.8) | 115 → 115 |
 
-### Building the processed data
+- **32% more mules caught at the same alert budget**, and PR-AUC rises from 0.168 to 0.261.
+- **Every bank gains:** B1 +6.0, B2 +3.9, B3 +6.6, B4 +6.5, B5 +6.8 pts (`results/metrics_per_bank.csv`).
+- **Ablation:** with the joined graph but each bank using only its own labels, there is no gain (−1.1 pts, CI −2.9 to +0.7). The value comes from pooling known-mule intelligence together with the joined graph, which is exactly what the enclave makes safe.
+- Graph-pattern features are **causal**: each transaction only sees earlier transactions, as in live scoring.
+- The whole full-data experiment ran on an IBM LinuxONE Community Cloud server (s390x, 3 vCPU, 8 GB RAM) in 27 minutes, by streaming transactions to Snap ML.
 
-From the repository root, run the project's `build_processed()` function from `mulenet.build` to generate the processed full dataset and its associated graph and feature artifacts.
+![Recall at 1% alert budget](results/figures/recall_full.png)
 
-For example, in Python:
+## Repository layout
 
-```python
-from mulenet.build import build_processed
+| Path | What |
+|---|---|
+| `mulenet/build.py` | Raw IBM AML CSV → `nodes.csv` + `edges.npz` (bank → member mapping, labels, 60/20/20 split) |
+| `mulenet/common.py` | Shared loader: `load_view("combined" or "B1".."B5")`, per-view account features, laundering chains |
+| `mulenet/gfp.py` | Snap ML graph-pattern features (one-shot and streaming) + XGBoost runs |
+| `mulenet/baselines.py` | Logistic regression and XGBoost baselines |
+| `mulenet/gnn.py` | Direction-aware GraphSAGE / SIGN baselines (PyTorch) |
+| `mulenet/evaluate.py` | Official evaluator: recall at budget, paired bootstrap CI, chain detection |
+| `mulenet/enclave.py` | Enclave simulation: keyring, bank submission, attestation, per-bank encrypted alerts, isolation check |
+| `run_full_gfp_stream.py` | Full-data Snap ML + XGBoost run (silo, combined, own-labels ablation) |
+| `final_results.py` | Builds `results/metrics.csv`, the per-bank table and the figure |
+| `notebooks/` | Per-role notebooks (data, model, evaluation, enclave demo) |
 
-build_processed()
+## Reproduce
+
+```bash
+# 1. data (Kaggle: ealtman2019/ibm-transactions-for-anti-money-laundering-aml) → data/raw/HI-Small_Trans.csv
+python -c "from mulenet.build import build_processed; build_processed(sample_days=None)"
+# 2. baselines
+python -c "from mulenet.baselines import run_baseline as r; [r(k, s, sample=False, out_dir='results/scores') for k in ('lr','xgb') for s in ('silo','combined')]"
+# 3. Snap ML graph patterns + XGBoost (≈30 min on 3 vCPU / 8 GB)
+python run_full_gfp_stream.py
+# 4. results table + figure
+python final_results.py
 ```
 
-Run the build only when sufficient compute and memory are available; it can process millions of transactions. The robustness dataset `LI-Small_Trans.csv` is a separate input and is not built as part of this step unless explicitly configured.
+Requirements: Python 3.11+, numpy, pandas, scikit-learn, xgboost, snapml, torch, torch_geometric, cryptography. Paths in the run scripts assume the LinuxONE Jupyter container (`/home/ibm-user/shared`); change them to your checkout.
+
+## Open-source used
+
+IBM AML dataset · IBM Snap ML · XGBoost · scikit-learn · PyTorch · PyTorch Geometric · pandas · NumPy · cryptography · LinuxONE Community Cloud Jupyter image.
+
+No real customer data is used. Keys live in `secrets/`, which is never committed.
