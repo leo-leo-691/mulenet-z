@@ -1,0 +1,111 @@
+{
+ "chain_id": 505,
+ "accounts": [
+  {
+   "id": "8665d9",
+   "bank": "B1",
+   "split": "train",
+   "alerted_alone": false,
+   "alerted_joined": false
+  },
+  {
+   "id": "d1a570",
+   "bank": "B4",
+   "split": "test",
+   "alerted_alone": false,
+   "alerted_joined": false
+  },
+  {
+   "id": "e4bed8",
+   "bank": "B5",
+   "split": "val",
+   "alerted_alone": false,
+   "alerted_joined": false
+  },
+  {
+   "id": "19bbad",
+   "bank": "B5",
+   "split": "test",
+   "alerted_alone": false,
+   "alerted_joined": true
+  },
+  {
+   "id": "1c1005",
+   "bank": "B1",
+   "split": "test",
+   "alerted_alone": false,
+   "alerted_joined": false
+  },
+  {
+   "id": "c81bb7",
+   "bank": "B5",
+   "split": "val",
+   "alerted_alone": false,
+   "alerted_joined": false
+  },
+  {
+   "id": "edf4e4",
+   "bank": "B2",
+   "split": "train",
+   "alerted_alone": false,
+   "alerted_joined": false
+  },
+  {
+   "id": "430848",
+   "bank": "B3",
+   "split": "train",
+   "alerted_alone": false,
+   "alerted_joined": false
+  }
+ ],
+ "transfers": [
+  {
+   "from": "8665d9",
+   "to": "d1a570",
+   "hours": 0.0,
+   "format": "ACH"
+  },
+  {
+   "from": "8665d9",
+   "to": "e4bed8",
+   "hours": 3.2,
+   "format": "ACH"
+  },
+  {
+   "from": "8665d9",
+   "to": "19bbad",
+   "hours": 29.8,
+   "format": "ACH"
+  },
+  {
+   "from": "8665d9",
+   "to": "1c1005",
+   "hours": 32.9,
+   "format": "ACH"
+  },
+  {
+   "from": "8665d9",
+   "to": "c81bb7",
+   "hours": 34.2,
+   "format": "ACH"
+  },
+  {
+   "from": "8665d9",
+   "to": "edf4e4",
+   "hours": 51.8,
+   "format": "ACH"
+  },
+  {
+   "from": "8665d9",
+   "to": "430848",
+   "hours": 61.4,
+   "format": "ACH"
+  }
+ ],
+ "summary": {
+  "cross_chains": 662,
+  "caught_alone": 160,
+  "caught_joined": 193,
+  "only_joined": 72
+ }
+}
