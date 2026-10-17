@@ -132,14 +132,18 @@ def gfp_node_features_stream(E: dict, m: np.ndarray, n: int, params: dict = GFP_
     return np.log1p(np.hstack([acc_out, acc_in])), names
 
 
+def _gfp_cache_path(view, sample, params, stream):
+    tag = hashlib.sha1((json.dumps(params, sort_keys=True) + ("stream-causal" if stream else "")).encode()).hexdigest()[:8]
+    return data_dir(sample) / f"x_gfp_{view}_{tag}.npy"   # new settings -> new cache file
+
+
 def load_view_gfp(view: str, sample: bool = False, cache: bool = True, params: dict | None = None,
                   stream: bool = False):
     """common.load_view + Snap ML graph-pattern features computed inside the same view."""
     params = params or GFP_PARAMS
     d = load_view(view, sample=sample)
     nodes = load_nodes(sample)
-    tag = hashlib.sha1((json.dumps(params, sort_keys=True) + ("stream-causal" if stream else "")).encode()).hexdigest()[:8]
-    path = data_dir(sample) / f"x_gfp_{view}_{tag}.npy"   # new settings -> new cache file
+    path = _gfp_cache_path(view, sample, params, stream)
     if cache and path.exists() and path.stat().st_mtime > (data_dir(sample) / "edges.npz").stat().st_mtime:
         G = np.load(path)
     else:
@@ -170,9 +174,14 @@ def run_gfp_xgb(setting: str, sample: bool = False, out_dir: str | None = None,
     combined / all:     joined view, all members' train labels
     combined / own:     joined view, but each member trains only on its own labels
                         -> isolates the effect of the joined GRAPH from label sharing
+    flproxy:            federated-learning proxy: ONE model on all members' labels, but every
+                        account's features come only from its own member's silo view
+                        -> label sharing without the joined graph (upper bound of horizontal FL)
     """
     from mulenet.baselines import _fit_predict
     nodes = load_nodes(sample)
+    if setting == "flproxy":
+        return _run_flproxy(nodes, sample, out_dir, params or GFP_PARAMS, suffix, stream, _fit_predict)
     frames = []
     if setting == "combined" and label_scope == "all":
         jobs = [("combined", None)]
@@ -201,6 +210,40 @@ def run_gfp_xgb(setting: str, sample: bool = False, out_dir: str | None = None,
         name = f"gfpxgb{suffix}_{setting}" + ("_ownlabels" if setting == "combined" and label_scope == "own" else "")
         out.to_csv(os.path.join(out_dir, name + ".csv"), index=False)
         print("wrote", os.path.join(out_dir, name + ".csv"))
+    return out
+
+
+def _run_flproxy(nodes, sample, out_dir, params, suffix, stream, _fit_predict):
+    """Stack each member's home accounts with features from that member's silo view only.
+    Features are left unstandardised: each silo view standardises with its own statistics,
+    which would put the same raw value at different points per member. Trees are invariant
+    to one monotone transform per feature, so raw features match what the joined run sees."""
+    from mulenet.common import account_features
+    E = load_edges(sample)
+    inst = nodes["inst"].to_numpy()
+    n = len(nodes)
+    X = None
+    for b in INSTS:
+        path = _gfp_cache_path(b, sample, params, stream)
+        if not path.exists():
+            load_view_gfp(b, sample, params=params, stream=stream)        # builds the cache
+        G = np.load(path)
+        F = account_features(E, _view_mask(E, inst, b), inst, n).fillna(0).to_numpy(np.float32)
+        Xb = np.hstack([F, G]).astype(np.float32)
+        if X is None:
+            X = np.zeros_like(Xb)
+        home = inst == b
+        X[home] = Xb[home]                                               # each row from its own silo
+        print(f"[gfp-xgb/flproxy] {b}: {int(home.sum()):,} accounts, features from silo view {b}", flush=True)
+    del E
+    y = nodes["label"].to_numpy()
+    split = nodes["split"].to_numpy()
+    p = _fit_predict("xgb", X, y, split == "train", split == "val")       # same model, params, seed
+    out = nodes[["acct_key", "inst", "split"]].assign(score=p)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+        out.to_csv(os.path.join(out_dir, f"gfpxgb{suffix}_flproxy.csv"), index=False)
+        print("wrote", os.path.join(out_dir, f"gfpxgb{suffix}_flproxy.csv"))
     return out
 
 

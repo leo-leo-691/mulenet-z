@@ -30,6 +30,7 @@ IBM AML dataset HI-Small: 5,078,345 transactions, 515,088 accounts, split into 5
 - **32% more mules caught at the same alert budget**, and PR-AUC rises from 0.168 to 0.261.
 - **Every bank gains:** B1 +6.0, B2 +3.9, B3 +6.6, B4 +6.5, B5 +6.8 pts (`results/metrics_per_bank.csv`).
 - **Ablation:** with the joined graph but each bank using only its own labels, there is no gain (−1.1 pts, CI −2.9 to +0.7). The value comes from pooling known-mule intelligence together with the joined graph, which is exactly what the enclave makes safe.
+- **Robustness on a second dataset (IBM AML LI-Small:** 6.9M transactions, a rarer laundering signal with 0.75% mules**):** the same pipeline lifts recall from 9.3% to 12.4% (**+3.1 pts, 95% CI +0.9 to +5.2**), again about a third more mules caught at the same alert budget. PR-AUC more than doubles (0.035 → 0.081), and cross-bank chains caught rise from 81 to 94 of 580. Four of five banks gain; the smallest bank (B1, 137 test mules) is flat (−0.8 pts). The own-labels ablation again shows no gain (−1.0 pts). See `results/metrics_li.csv`.
 - Graph-pattern features are **causal**: each transaction only sees earlier transactions, as in live scoring.
 - The whole full-data experiment ran on an IBM LinuxONE Community Cloud server (s390x, 3 vCPU, 8 GB RAM) in 27 minutes, by streaming transactions to Snap ML.
 
