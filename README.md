@@ -6,7 +6,7 @@ IBM Z Datathon 2026 · Theme: *AI Secured: Innovation Without Exposure* · Team:
 
 | | |
 |---|---|
-| Demo video | [add YouTube link] |
+| Demo video | [Watch the video (2:55)](https://youtu.be/m8zMbCJuCiU) |
 | Pitch deck (PDF) | [docs/MuleNet-Z_deck.pdf](docs/MuleNet-Z_deck.pdf) |
 | Live bank console | [leo-leo-691.github.io/mulenet-z/demo](https://leo-leo-691.github.io/mulenet-z/demo/) |
 
