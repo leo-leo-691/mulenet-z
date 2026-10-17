@@ -1,0 +1,17 @@
+{
+  "project": "MuleNet-Z",
+  "role": "Role 3 - Baselines and Evaluation",
+  "alert_budget": 0.01,
+  "alert_budget_scope": "per institution",
+  "alert_count_rule": "max(1, round(budget * test_accounts_per_institution))",
+  "primary_metric": "recall_at_budget",
+  "supporting_metrics": [
+    "pr_auc",
+    "roc_auc",
+    "precision_at_budget",
+    "f1_at_budget"
+  ],
+  "test_split": "pending team confirmation",
+  "label_definition": "pending team confirmation",
+  "model_results_status": "not yet evaluated"
+}
