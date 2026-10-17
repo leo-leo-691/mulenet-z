@@ -147,10 +147,10 @@ def load_view(view: str = "combined", sample: bool = False, cache: bool = True):
     split = nodes["split"].to_numpy()
     home = np.ones(n, bool) if view == "combined" else node_inst == view
     return Data(x=torch.from_numpy(X), edge_index=torch.cat([ei_dir, ei_dir.flip(0)], 1),
-                edge_index_dir=ei_dir, y=torch.from_numpy(nodes["label"].to_numpy(np.int64)),
-                train_mask=torch.from_numpy(split == "train"),
-                val_mask=torch.from_numpy(split == "val"),
-                test_mask=torch.from_numpy(split == "test"),
+                edge_index_dir=ei_dir, y=torch.from_numpy(nodes["label"].to_numpy(np.int64).copy()),
+                train_mask=torch.from_numpy((split == "train").copy()),
+                val_mask=torch.from_numpy((split == "val").copy()),
+                test_mask=torch.from_numpy((split == "test").copy()),
                 home_mask=torch.from_numpy(home), num_nodes=n, feature_names=names)
 
 
