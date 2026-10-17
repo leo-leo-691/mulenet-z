@@ -18,6 +18,7 @@ so the second call is instant. Delete the x_*.npy files to rebuild.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -32,6 +33,9 @@ LOG_COLS = {"in_count", "out_count", "uniq_in", "uniq_out", "amt_in", "amt_out",
 
 
 def data_dir(sample: bool) -> Path:
+    # MULENET_DATA_DIR points the full-data loaders at another build (e.g. LI-Small)
+    if not sample and os.environ.get("MULENET_DATA_DIR"):
+        return Path(os.environ["MULENET_DATA_DIR"])
     return SHARED / "data" / ("processed_sample" if sample else "processed")
 
 

@@ -47,14 +47,14 @@ def _chunks(raw: Path, cutoff):
 
 
 def build_processed(sample_days: int | None = 3, raw: Path = RAW, out_dir: Path | None = None,
-                    seed: int = 42, verbose: bool = True) -> Path:
+                    seed: int = 42, verbose: bool = True, bank_map: Path | None = None) -> Path:
     raw = Path(raw)
     if out_dir is None:
         out_dir = SHARED / "data" / ("processed_sample" if sample_days else "processed")
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    b2i = pd.read_csv(SHARED / "data" / "processed" / "bank_to_inst.csv")
+    b2i = pd.read_csv(bank_map or SHARED / "data" / "processed" / "bank_to_inst.csv")
     b2i = b2i.rename(columns={"institution": "inst"})
     bank_to_inst = dict(zip(b2i["bank"].astype("int64"), b2i["inst"]))
 

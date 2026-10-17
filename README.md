@@ -53,7 +53,7 @@ IBM AML dataset HI-Small: 5,078,345 transactions, 515,088 accounts, split into 5
 ## Reproduce
 
 ```bash
-# 1. data (Kaggle: ealtman2019/ibm-transactions-for-anti-money-laundering-aml) → data/raw/HI-Small_Trans.csv
+# 1. data (Kaggle: ealtman2019/ibm-transactions-for-anti-money-laundering-aml) → data/HI-Small_Trans.csv
 python -c "from mulenet.build import build_processed; build_processed(sample_days=None)"
 # 2. baselines
 python -c "from mulenet.baselines import run_baseline as r; [r(k, s, sample=False, out_dir='results/scores') for k in ('lr','xgb') for s in ('silo','combined')]"
