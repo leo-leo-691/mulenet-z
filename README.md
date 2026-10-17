@@ -67,6 +67,15 @@ python final_results.py
 
 Requirements: Python 3.11+, numpy, pandas, scikit-learn, xgboost, snapml, torch, torch_geometric, cryptography. Paths in the run scripts assume the LinuxONE Jupyter container (`/home/ibm-user/shared`); change them to your checkout.
 
+## Team and roles
+
+| Member | Role |
+|---|---|
+| Arindam Gogoi | Team lead; models (GNN baselines, Snap ML graph patterns, causal streaming), full-data and LI-Small experiments, federated-learning comparison, alert explanations |
+| Niyati Joshi | Evaluation framework (recall at alert budget, bootstrap confidence intervals, chain detection), sample evaluation and alert export |
+| Vishwajeet Sonawane | Data pipeline (IBM AML dataset, bank-to-member mapping, processed graph files), dataset documentation, LI-Small data |
+| Vipul Gujar | Enclave simulation (per-bank keys, attestation check, isolation proof), demo, pitch deck and video |
+
 ## Open-source used
 
 IBM AML dataset · IBM Snap ML · XGBoost · scikit-learn · PyTorch · PyTorch Geometric · pandas · NumPy · cryptography · LinuxONE Community Cloud Jupyter image.
